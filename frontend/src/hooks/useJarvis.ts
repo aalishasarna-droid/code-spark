@@ -14,6 +14,7 @@ export function useJarvis(options?: UseJarvisOptions) {
   
   const wsRef = useRef<WebSocket | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   
@@ -21,22 +22,65 @@ export function useJarvis(options?: UseJarvisOptions) {
   const nextPlayTimeRef = useRef<number>(0);
   const isSpeakingRef = useRef<boolean>(false);
 
+  // Downsample native mic rate (e.g. 48kHz or 44.1kHz) to 24kHz for OpenAI Realtime
+  const downsampleTo24k = (inputData: Float32Array, inputSampleRate: number): Float32Array => {
+    if (inputSampleRate === 24000) return inputData;
+    const ratio = inputSampleRate / 24000;
+    const newLength = Math.round(inputData.length / ratio);
+    const result = new Float32Array(newLength);
+    for (let i = 0; i < newLength; i++) {
+      const originalIndex = Math.min(Math.round(i * ratio), inputData.length - 1);
+      result[i] = inputData[originalIndex];
+    }
+    return result;
+  };
+
+  // Convert float audio buffer to 16-bit PCM buffer
+  const floatTo16BitPCM = (float32Array: Float32Array) => {
+    const buffer = new ArrayBuffer(float32Array.length * 2);
+    const view = new DataView(buffer);
+    let offset = 0;
+    for (let i = 0; i < float32Array.length; i++, offset += 2) {
+      let s = Math.max(-1, Math.min(1, float32Array[i]));
+      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+    return buffer;
+  };
+
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary);
+  };
+
   // Initialize and unlock audio playback on user gesture
   const initAudio = useCallback(() => {
     try {
       if (!audioContextRef.current) {
         const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
+        // Use default native hardware sample rate (44.1k/48k) so OS audio routing never fails
+        audioContextRef.current = new AudioContextClass();
+        console.log('🎧 [EDITH] AudioContext initialized at native hardware sampleRate:', audioContextRef.current.sampleRate);
       }
       const ctx = audioContextRef.current;
       if (ctx.state === 'suspended') {
         ctx.resume().catch(console.error);
       }
+      
+      if (!masterGainRef.current) {
+        masterGainRef.current = ctx.createGain();
+        masterGainRef.current.gain.value = 1.0;
+        masterGainRef.current.connect(ctx.destination);
+      }
+
       // Play a short silent sample to immediately unlock browser audio autoplay
       const silentBuffer = ctx.createBuffer(1, 1, 24000);
       const silentSource = ctx.createBufferSource();
       silentSource.buffer = silentBuffer;
-      silentSource.connect(ctx.destination);
+      silentSource.connect(masterGainRef.current);
       silentSource.start(0);
     } catch (err) {
       console.warn('AudioContext init warning:', err);
@@ -44,10 +88,13 @@ export function useJarvis(options?: UseJarvisOptions) {
   }, []);
 
   const playAudioChunk = useCallback((base64Audio: string) => {
-    if (!audioContextRef.current) return;
+    if (!audioContextRef.current) {
+      console.warn('Cannot play audio: AudioContext is not initialized');
+      return;
+    }
     const ctx = audioContextRef.current;
     
-    // Ensure AudioContext is actively running (browsers suspend it after idle intervals)
+    // Ensure AudioContext is actively running
     if (ctx.state === 'suspended') {
       ctx.resume().catch(console.error);
     }
@@ -73,12 +120,13 @@ export function useJarvis(options?: UseJarvisOptions) {
         float32Array[i] = dataView.getInt16(i * 2, true) / 32768.0; 
       }
 
+      // Web Audio automatically resamples 24000Hz PCM buffer to the hardware rate during playback
       const audioBuffer = ctx.createBuffer(1, numSamples, 24000);
       audioBuffer.getChannelData(0).set(float32Array);
 
       const source = ctx.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(ctx.destination);
+      source.connect(masterGainRef.current || ctx.destination);
 
       activeSourcesRef.current.push(source);
       source.onended = () => {
@@ -90,12 +138,12 @@ export function useJarvis(options?: UseJarvisOptions) {
       };
 
       // Seamless streaming audio scheduling:
-      // If nextPlayTime is behind current clock, catch up to now
       const now = ctx.currentTime;
       if (nextPlayTimeRef.current < now) {
-        nextPlayTimeRef.current = now; 
+        nextPlayTimeRef.current = now + 0.05; 
       }
       source.start(nextPlayTimeRef.current);
+      console.log(`🔊 [EDITH Audio] Playing chunk: ${numSamples} samples (${audioBuffer.duration.toFixed(2)}s) at t=${nextPlayTimeRef.current.toFixed(2)}s (now=${now.toFixed(2)}s)`);
       nextPlayTimeRef.current += audioBuffer.duration;
     } catch (err) {
       console.error('Error playing audio chunk:', err);
@@ -113,26 +161,6 @@ export function useJarvis(options?: UseJarvisOptions) {
     }
     setJarvisState('listening');
   }, []);
-
-  const floatTo16BitPCM = (float32Array: Float32Array) => {
-    const buffer = new ArrayBuffer(float32Array.length * 2);
-    const view = new DataView(buffer);
-    let offset = 0;
-    for (let i = 0; i < float32Array.length; i++, offset += 2) {
-      let s = Math.max(-1, Math.min(1, float32Array[i]));
-      view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
-    }
-    return buffer;
-  };
-
-  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
-    let binary = '';
-    const bytes = new Uint8Array(buffer);
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return window.btoa(binary);
-  };
 
   const startMicrophone = useCallback(async () => {
     try {
@@ -157,7 +185,9 @@ export function useJarvis(options?: UseJarvisOptions) {
         if (isSpeakingRef.current) return;
         
         const inputData = e.inputBuffer.getChannelData(0);
-        const pcm16Buffer = floatTo16BitPCM(inputData);
+        const inputSampleRate = e.inputBuffer.sampleRate;
+        const resampled24k = downsampleTo24k(inputData, inputSampleRate);
+        const pcm16Buffer = floatTo16BitPCM(resampled24k);
         const base64Audio = arrayBufferToBase64(pcm16Buffer);
         
         wsRef.current.send(JSON.stringify({
