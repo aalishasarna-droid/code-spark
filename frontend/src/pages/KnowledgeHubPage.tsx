@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Upload, FileText, Trash2, Send, BookOpen, ArrowLeft, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { Upload, FileText, Trash2, Send, BookOpen, ArrowLeft, Loader2, CheckCircle, AlertCircle, X, GraduationCap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { API_ENDPOINTS } from '@/lib/api-config'
 import { useNavigate } from 'react-router-dom'
@@ -165,6 +165,14 @@ const KnowledgeHubPage = () => {
             onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)' }}
           >
             <ArrowLeft size={14} /> Back to IDE
+          </button>
+          <button onClick={() => navigate('/adaptive-learning')} style={{
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.2), rgba(20,184,166,0.2))',
+            border: '1px solid rgba(16,185,129,0.4)',
+            borderRadius: 8, padding: '8px 12px', color: '#6ee7b7', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, transition: 'all 0.2s'
+          }}>
+            <GraduationCap size={14} /> Adaptive Learning PS-1
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <BookOpen size={22} color="#7c6ff7" />

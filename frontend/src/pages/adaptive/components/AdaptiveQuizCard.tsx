@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { CheckCircle2, XCircle, HelpCircle, Sparkles, Volume2, Mic, ArrowRight, RefreshCw, Award } from 'lucide-react'
+import { CheckCircle2, XCircle, HelpCircle, Sparkles, Volume2, ArrowRight, RefreshCw, Award } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { QuizQuestion, SupportedLanguage } from '../types'
 
@@ -22,7 +22,7 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
   const [score, setScore] = useState(0)
   const [showHint, setShowHint] = useState(false)
   const [isReadingQuestion, setIsReadingQuestion] = useState(false)
-  const [masteryLevel, setMasteryLevel] = useState(45) // Starting baseline
+  const [masteryLevel, setMasteryLevel] = useState(45)
 
   const currentQ = questions[currentIndex] || questions[0]
   const isLastQuestion = currentIndex >= questions.length - 1
@@ -39,9 +39,9 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
     const chosenOption = currentQ.options.find(o => o.id === selectedOptionId)
     if (chosenOption?.isCorrect) {
       setScore(prev => prev + 1)
-      setMasteryLevel(prev => Math.min(100, prev + 18)) // Dynamic BKT boost
+      setMasteryLevel(prev => Math.min(100, prev + 18))
     } else {
-      setMasteryLevel(prev => Math.max(15, prev - 12)) // Downward calibration
+      setMasteryLevel(prev => Math.max(15, prev - 12))
     }
   }
 
@@ -65,7 +65,6 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
     setMasteryLevel(45)
   }
 
-  // Voice narration of question in regional language
   const handleReadQuestion = () => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel()
@@ -92,39 +91,39 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
   const selectedOption = currentQ.options.find(o => o.id === selectedOptionId)
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-6 shadow-sm mb-6">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-6 shadow-sm mb-6">
       {/* Top Banner: Progress and Adaptive Difficulty Meter */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-border/70 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100 mb-5">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-primary/10 text-primary">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
             Question {currentIndex + 1} of {questions.length}
           </span>
-          <span className="text-xs text-muted-foreground font-medium">
-            • Concept: <strong className="text-foreground">{currentQ.conceptTitle}</strong>
+          <span className="text-xs text-slate-500 font-medium">
+            • Concept: <strong className="text-slate-900">{currentQ.conceptTitle}</strong>
           </span>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Dynamic Difficulty Gauge */}
-          <div className="flex items-center gap-1.5 bg-secondary px-3 py-1 rounded-lg text-xs">
-            <span className="text-muted-foreground">Adaptive Difficulty:</span>
-            <span className="font-bold text-amber-500 flex items-center gap-1">
-              <Award className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg text-xs">
+            <span className="text-slate-500">Adaptive Difficulty:</span>
+            <span className="font-bold text-amber-700 flex items-center gap-1">
+              <Award className="w-3.5 h-3.5 text-amber-500" />
               {currentQ.difficultyLabel} (L{currentQ.difficulty})
             </span>
           </div>
 
           {/* Real-time Mastery Meter */}
           <div className="hidden sm:flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Mastery:</span>
-            <div className="w-20 h-2 bg-muted rounded-full overflow-hidden">
+            <span className="text-slate-500">Mastery:</span>
+            <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-rose-500 via-amber-500 to-emerald-500"
                 animate={{ width: `${masteryLevel}%` }}
                 transition={{ duration: 0.5 }}
               />
             </div>
-            <span className="font-bold text-foreground text-xs">{masteryLevel}%</span>
+            <span className="font-bold text-slate-900 text-xs">{masteryLevel}%</span>
           </div>
         </div>
       </div>
@@ -132,17 +131,16 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
       {/* Question Card */}
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
-          <h3 className="text-base sm:text-lg font-bold text-foreground leading-snug">
+          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
             {currentQ.nativeQuestionText[currentLanguage] || currentQ.questionText}
           </h3>
 
-          {/* Read Out Question in Regional Audio */}
           <button
             onClick={handleReadQuestion}
-            className={`p-2 rounded-xl border transition-all ${
+            className={`p-2.5 rounded-xl border transition-all ${
               isReadingQuestion
-                ? 'bg-amber-500/20 border-amber-500 text-amber-600 animate-pulse'
-                : 'bg-secondary/70 hover:bg-secondary border-border text-muted-foreground hover:text-foreground'
+                ? 'bg-amber-100 border-amber-300 text-amber-700 animate-pulse'
+                : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'
             }`}
             title="Listen to question in regional language"
           >
@@ -150,10 +148,10 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
           </button>
         </div>
 
-        {/* Real-World Village / Agricultural Context Analogy */}
+        {/* Real-World Context Analogy */}
         {currentQ.contextAnalogy && (
-          <div className="mt-2 text-xs text-muted-foreground bg-secondary/40 border border-border/50 rounded-xl p-3 flex items-start gap-2">
-            <span className="font-bold text-amber-600 dark:text-amber-400">🌾 Context:</span>
+          <div className="mt-2.5 text-xs text-slate-700 bg-amber-50/70 border border-amber-200/80 rounded-xl p-3 flex items-start gap-2 shadow-2xs">
+            <span className="font-bold text-amber-700">🌾 Local Context:</span>
             <span>{currentQ.nativeContextAnalogy?.[currentLanguage] || currentQ.contextAnalogy}</span>
           </div>
         )}
@@ -163,19 +161,19 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
         {currentQ.options.map(option => {
           const isSelected = selectedOptionId === option.id
-          let optionStyle = 'bg-secondary/40 hover:bg-secondary/80 border-border/70 text-foreground'
+          let optionStyle = 'bg-white hover:bg-slate-50 border-slate-200 text-slate-800 shadow-2xs'
 
           if (isSelected && !isSubmitted) {
-            optionStyle = 'bg-primary/10 border-primary text-primary font-semibold ring-1 ring-primary'
+            optionStyle = 'bg-indigo-50/70 border-indigo-600 text-indigo-900 font-semibold ring-2 ring-indigo-500/20'
           }
 
           if (isSubmitted) {
             if (option.isCorrect) {
-              optionStyle = 'bg-emerald-500/15 border-emerald-500 text-emerald-700 dark:text-emerald-300 font-semibold'
+              optionStyle = 'bg-emerald-50 border-emerald-500 text-emerald-900 font-bold'
             } else if (isSelected && !option.isCorrect) {
-              optionStyle = 'bg-rose-500/15 border-rose-500 text-rose-700 dark:text-rose-300 font-semibold'
+              optionStyle = 'bg-rose-50 border-rose-500 text-rose-900 font-bold'
             } else {
-              optionStyle = 'opacity-40 border-border/40'
+              optionStyle = 'opacity-40 border-slate-200 bg-slate-50'
             }
           }
 
@@ -185,24 +183,24 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
               onClick={() => handleSelectOption(option.id)}
               disabled={isSubmitted}
               whileTap={!isSubmitted ? { scale: 0.98 } : {}}
-              className={`p-4 rounded-xl border text-left transition-all flex items-start justify-between gap-3 ${optionStyle}`}
+              className={`p-4 rounded-xl border-2 text-left transition-all flex items-start justify-between gap-3 ${optionStyle}`}
             >
               <div>
                 <span className="text-sm">
                   {option.nativeText[currentLanguage] || option.text}
                 </span>
                 {isSubmitted && option.diagnosticTrap && isSelected && (
-                  <span className="block text-[11px] text-rose-600 dark:text-rose-400 mt-1 font-normal">
+                  <span className="block text-[11px] text-rose-600 mt-1 font-semibold">
                     ⚠️ Diagnosed Trap: {option.diagnosticTrap}
                   </span>
                 )}
               </div>
 
               {isSubmitted && option.isCorrect && (
-                <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
               )}
               {isSubmitted && isSelected && !option.isCorrect && (
-                <XCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+                <XCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
               )}
             </motion.button>
           )
@@ -218,35 +216,35 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
             exit={{ opacity: 0, height: 0 }}
             className={`p-4 rounded-xl border mb-5 ${
               selectedOption.isCorrect
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                : 'bg-rose-50 border-rose-200 text-rose-900'
             }`}
           >
             <div className="flex items-center gap-2 text-xs font-bold mb-1">
               {selectedOption.isCorrect ? (
                 <>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Correct Answer! Concept Mastery Confirmed.</span>
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span className="text-emerald-800">Correct Answer! Concept Mastery Confirmed.</span>
                 </>
               ) : (
                 <>
-                  <XCircle className="w-4 h-4 text-rose-500" />
-                  <span>Learning Gap Detected!</span>
+                  <XCircle className="w-4 h-4 text-rose-600" />
+                  <span className="text-rose-800">Learning Gap Detected!</span>
                 </>
               )}
             </div>
-            <p className="text-xs text-foreground/80">
+            <p className="text-xs text-slate-700 leading-relaxed">
               {selectedOption.nativeExplanation[currentLanguage] || selectedOption.explanation}
             </p>
 
             {!selectedOption.isCorrect && (
-              <div className="mt-3 pt-3 border-t border-rose-500/20 flex flex-wrap items-center justify-between gap-2">
-                <span className="text-[11px] text-rose-700 dark:text-rose-300">
+              <div className="mt-3 pt-3 border-t border-rose-200/80 flex flex-wrap items-center justify-between gap-2">
+                <span className="text-[11px] text-rose-800 font-medium">
                   Recommended Action: Review the Step-by-Step Remedial Module
                 </span>
                 <button
                   onClick={() => onRequestRemediation?.(currentQ.conceptId)}
-                  className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs flex items-center gap-1.5 shadow-sm"
+                  className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Open Automated Remediation</span>
@@ -261,7 +259,7 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <button
           onClick={() => setShowHint(prev => !prev)}
-          className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 font-medium transition-colors"
+          className="text-xs text-slate-600 hover:text-slate-900 flex items-center gap-1 font-semibold transition-colors"
         >
           <HelpCircle className="w-4 h-4 text-amber-500" />
           <span>{showHint ? 'Hide Hint' : 'Need a Hint? (संकेत)'}</span>
@@ -272,10 +270,10 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
             <button
               onClick={handleSubmitAnswer}
               disabled={!selectedOptionId}
-              className={`px-5 py-2 rounded-xl text-xs font-semibold shadow-sm transition-all ${
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold shadow-xs transition-all ${
                 selectedOptionId
-                  ? 'bg-primary hover:bg-primary/90 text-primary-foreground'
-                  : 'bg-secondary text-muted-foreground cursor-not-allowed'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  : 'bg-slate-100 text-slate-400 cursor-not-allowed'
               }`}
             >
               Submit Answer
@@ -283,7 +281,7 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
           ) : (
             <button
               onClick={handleNext}
-              className="px-5 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-semibold shadow-sm flex items-center gap-1.5 transition-all"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all"
             >
               <span>{isLastQuestion ? 'Complete Assessment' : 'Next Adaptive Question'}</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -292,7 +290,7 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
 
           <button
             onClick={handleReset}
-            className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            className="p-2.5 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
             title="Reset Quiz"
           >
             <RefreshCw className="w-4 h-4" />
@@ -307,7 +305,7 @@ export const AdaptiveQuizCard: React.FC<AdaptiveQuizCardProps> = ({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-800 dark:text-amber-200"
+            className="mt-4 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 leading-relaxed"
           >
             💡 <strong>Hint:</strong> {currentQ.nativeHint[currentLanguage] || currentQ.hint}
           </motion.div>

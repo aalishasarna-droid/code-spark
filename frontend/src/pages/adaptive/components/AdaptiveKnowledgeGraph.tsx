@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { CheckCircle2, AlertTriangle, AlertCircle, Lock, BookOpen, ArrowRight, Sparkles, BrainCircuit } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import type { ConceptNode, SupportedLanguage } from '../types'
@@ -22,7 +22,6 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
 }) => {
   const selectedConcept = concepts.find(c => c.id === selectedConceptId) || concepts[0]
 
-  // Calculate overall class / student knowledge graph mastery
   const averageMastery = Math.round(
     concepts.reduce((acc, curr) => acc + curr.masteryScore, 0) / concepts.length
   )
@@ -31,75 +30,74 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
     switch (status) {
       case 'mastered':
         return {
-          bg: 'bg-emerald-500/10 border-emerald-500/40 text-emerald-600 dark:text-emerald-400',
-          badge: 'bg-emerald-500 text-white',
+          cardBg: 'bg-white hover:bg-emerald-50/30 border-emerald-300 text-slate-900',
+          badge: 'bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold',
           dot: 'bg-emerald-500',
           label: 'Mastered (80%+)',
         }
       case 'developing':
         return {
-          bg: 'bg-amber-500/10 border-amber-500/40 text-amber-600 dark:text-amber-400',
-          badge: 'bg-amber-500 text-white',
+          cardBg: 'bg-white hover:bg-amber-50/30 border-amber-300 text-slate-900',
+          badge: 'bg-amber-100 text-amber-800 border border-amber-300 font-bold',
           dot: 'bg-amber-500',
           label: 'Developing (50-79%)',
         }
       case 'critical_gap':
         return {
-          bg: 'bg-rose-500/10 border-rose-500/40 text-rose-600 dark:text-rose-400',
-          badge: 'bg-rose-500 text-white',
+          cardBg: 'bg-white hover:bg-rose-50/40 border-rose-400 text-slate-900 ring-1 ring-rose-200',
+          badge: 'bg-rose-100 text-rose-800 border border-rose-300 font-bold',
           dot: 'bg-rose-500',
           label: 'Critical Gap (<50%)',
         }
       case 'locked':
       default:
         return {
-          bg: 'bg-slate-500/10 border-slate-500/30 text-slate-500 dark:text-slate-400',
-          badge: 'bg-slate-500 text-white',
+          cardBg: 'bg-slate-50/80 border-slate-200 text-slate-500 opacity-80',
+          badge: 'bg-slate-200 text-slate-700 border border-slate-300 font-medium',
           dot: 'bg-slate-400',
-          label: 'Locked / Prerequisite Required',
+          label: 'Locked / Prerequisite',
         }
     }
   }
 
-  // Pre-calculated node layout coordinates for clean graph display
   const nodePositions: Record<string, { x: number; y: number }> = {
-    c1: { x: 80, y: 70 },   // Fractions & Rational Basics (Foundation)
-    c2: { x: 80, y: 220 },  // Negative Integers & Signs
-    c3: { x: 300, y: 145 }, // Linear Equations (requires c1 & c2)
-    c4: { x: 520, y: 80 },  // Word Problems (requires c3)
-    c5: { x: 300, y: 280 }, // Ratio & Proportion (requires c1)
-    c6: { x: 520, y: 220 }, // Quadratic & Polynomials (requires c3 & c4)
+    c1: { x: 80, y: 70 },
+    c2: { x: 80, y: 220 },
+    c3: { x: 300, y: 145 },
+    c4: { x: 520, y: 80 },
+    c5: { x: 300, y: 280 },
+    c6: { x: 520, y: 220 },
   }
 
   return (
-    <div className="bg-card border border-border rounded-2xl p-5 shadow-sm mb-6">
+    <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-sm mb-6">
       {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+          <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
             <BrainCircuit className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-foreground flex items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               Adaptive Knowledge Graph & Concept Map
-              <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
                 CBSE & State Board Aligned
               </span>
             </h2>
-            <p className="text-xs text-muted-foreground">
-              Dynamic Bayesian mastery tracing • Live prerequisite bottleneck detection
+            <p className="text-xs text-slate-500">
+              Dynamic concept tracing • Pinpointing exact prerequisite learning gaps
             </p>
           </div>
         </div>
 
         {/* Live Mastery Meter Gauge */}
-        <div className="flex items-center gap-3 bg-secondary/60 px-4 py-2 rounded-xl border border-border/60">
+        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200">
           <div>
             <div className="flex items-center justify-between gap-2 text-xs">
-              <span className="text-muted-foreground font-medium">Curriculum Mastery:</span>
-              <span className="font-bold text-foreground">{averageMastery}%</span>
+              <span className="text-slate-600 font-medium">Curriculum Mastery:</span>
+              <span className="font-extrabold text-slate-900">{averageMastery}%</span>
             </div>
-            <div className="w-36 h-2 bg-muted rounded-full mt-1 overflow-hidden">
+            <div className="w-36 h-2 bg-slate-200 rounded-full mt-1 overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-amber-500 via-teal-500 to-emerald-500 rounded-full"
                 initial={{ width: 0 }}
@@ -108,12 +106,12 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
               />
             </div>
           </div>
-          <div className="text-right pl-2 border-l border-border/80">
-            <span className="text-[10px] text-muted-foreground block uppercase font-bold tracking-wider">
+          <div className="text-right pl-3 border-l border-slate-200">
+            <span className="text-[10px] text-slate-400 block uppercase font-bold tracking-wider">
               Status
             </span>
-            <span className="text-xs font-semibold text-rose-500 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" /> 2 Bottlenecks
+            <span className="text-xs font-bold text-rose-600 flex items-center gap-1">
+              <AlertCircle className="w-3.5 h-3.5" /> 2 Bottlenecks
             </span>
           </div>
         </div>
@@ -122,26 +120,26 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
       {/* Main Grid: Interactive Graph on Left, Node Details on Right */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
         {/* Graph Canvas */}
-        <div className="lg:col-span-8 bg-background/80 border border-border/70 rounded-xl p-3 relative overflow-hidden min-h-[360px] flex flex-col justify-between">
+        <div className="lg:col-span-8 bg-slate-50/70 border border-slate-200 rounded-xl p-3 relative overflow-hidden min-h-[360px] flex flex-col justify-between">
           {/* Top Status Legend */}
           <div className="flex flex-wrap items-center gap-3 text-[11px] mb-2 px-2">
-            <span className="text-muted-foreground font-medium">Legend:</span>
-            <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+            <span className="text-slate-500 font-semibold">Legend:</span>
+            <span className="flex items-center gap-1 text-emerald-700 font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Mastered (80%+)
             </span>
-            <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+            <span className="flex items-center gap-1 text-amber-700 font-medium">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500" /> In Progress (50-79%)
             </span>
-            <span className="flex items-center gap-1 text-rose-600 dark:text-rose-400 font-semibold">
+            <span className="flex items-center gap-1 text-rose-700 font-bold">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" /> Remediation Needed (&lt;50%)
             </span>
-            <span className="flex items-center gap-1 text-slate-500">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-400" /> Locked
+            <span className="flex items-center gap-1 text-slate-400 font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-300" /> Locked
             </span>
           </div>
 
           {/* SVG Canvas with Prerequisite Curves and Interactive Nodes */}
-          <div className="relative w-full h-[320px] bg-secondary/15 rounded-lg border border-border/40 overflow-hidden">
+          <div className="relative w-full h-[320px] bg-white/80 rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <svg className="w-full h-full absolute inset-0 pointer-events-none" viewBox="0 0 620 350">
               <defs>
                 <marker
@@ -224,7 +222,7 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
               />
             </svg>
 
-            {/* Clickable HTML Concept Node Badges overlaying SVG */}
+            {/* Clickable Concept Node Cards */}
             {concepts.map(concept => {
               const pos = nodePositions[concept.id] || { x: 50, y: 50 }
               const isSelected = concept.id === selectedConceptId
@@ -234,42 +232,38 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
                 <motion.button
                   key={concept.id}
                   onClick={() => onSelectConcept(concept.id)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.96 }}
+                  whileHover={{ scale: 1.04 }}
+                  whileTap={{ scale: 0.97 }}
                   style={{ left: `${pos.x - 45}px`, top: `${pos.y - 25}px` }}
-                  className={`absolute z-10 w-44 text-left p-2.5 rounded-xl border transition-all shadow-sm ${
-                    isSelected
-                      ? 'ring-2 ring-primary ring-offset-2 ring-offset-background ' + styles.bg
-                      : 'bg-card/95 hover:bg-card border-border/80'
+                  className={`absolute z-10 w-44 text-left p-2.5 rounded-xl border-2 transition-all shadow-xs ${styles.cardBg} ${
+                    isSelected ? 'ring-2 ring-indigo-500 ring-offset-2 ring-offset-white' : ''
                   }`}
                 >
                   <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                       Concept {concept.id.toUpperCase()}
                     </span>
-                    <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${styles.badge}`}
-                    >
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${styles.badge}`}>
                       {concept.masteryScore}%
                     </span>
                   </div>
-                  <div className="font-semibold text-xs text-foreground line-clamp-1">
+                  <div className="font-bold text-xs text-slate-900 line-clamp-1">
                     {concept.nativeTitle[currentLanguage] || concept.title}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1.5">
                     {concept.status === 'mastered' && (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
                     )}
                     {concept.status === 'critical_gap' && (
-                      <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
+                      <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
                     )}
                     {concept.status === 'developing' && (
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
                     )}
                     {concept.status === 'locked' && (
                       <Lock className="w-3.5 h-3.5 text-slate-400" />
                     )}
-                    <span className="text-[10px] text-muted-foreground truncate">
+                    <span className="text-[10px] text-slate-500 truncate">
                       {styles.label.split(' ')[0]}
                     </span>
                   </div>
@@ -278,15 +272,15 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
             })}
           </div>
 
-          <p className="text-[11px] text-muted-foreground px-2 pt-2">
-            💡 <strong>Algorithmic Diagnosis:</strong> The red pathway indicates that failure in{' '}
-            <span className="text-rose-500 font-semibold">C2: Negative Integers</span> is cascading into{' '}
-            <span className="text-rose-500 font-semibold">C4: Word Problems</span>. Target remediation here first.
+          <p className="text-[11px] text-slate-600 px-2 pt-2">
+            💡 <strong>Algorithmic Bottleneck Tracing:</strong> The red pathway highlights that weakness in{' '}
+            <strong className="text-rose-600">C2: Negative Integers</strong> prevents success in{' '}
+            <strong className="text-rose-600">C4: Word Problems</strong>. Targeted remediation is ready below.
           </p>
         </div>
 
         {/* Right Drawer: Selected Concept Inspection Card */}
-        <div className="lg:col-span-4 bg-secondary/30 border border-border/70 rounded-xl p-4 flex flex-col justify-between">
+        <div className="lg:col-span-4 bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col justify-between">
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedConcept.id}
@@ -296,46 +290,42 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
               className="space-y-3"
             >
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-primary/10 text-primary">
+                <span className="text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100">
                   {selectedConcept.subject} • Grade {selectedConcept.grade}
                 </span>
-                <span
-                  className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                    getStatusColor(selectedConcept.status).badge
-                  }`}
-                >
+                <span className={`text-xs px-2 py-0.5 rounded-full ${getStatusColor(selectedConcept.status).badge}`}>
                   Mastery: {selectedConcept.masteryScore}%
                 </span>
               </div>
 
               <div>
-                <h3 className="text-sm font-bold text-foreground">
+                <h3 className="text-sm font-bold text-slate-900">
                   {selectedConcept.nativeTitle[currentLanguage] || selectedConcept.title}
                 </h3>
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                   {selectedConcept.nativeDescription[currentLanguage] || selectedConcept.description}
                 </p>
               </div>
 
               {/* NCERT & Syllabus Reference */}
-              <div className="bg-card border border-border/60 rounded-lg p-2.5 text-xs">
-                <div className="flex items-center gap-1.5 font-semibold text-foreground/90">
-                  <BookOpen className="w-3.5 h-3.5 text-primary" />
+              <div className="bg-white border border-slate-200 rounded-xl p-3 text-xs shadow-2xs">
+                <div className="flex items-center gap-1.5 font-bold text-slate-800">
+                  <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
                   <span>Curriculum Reference:</span>
                 </div>
-                <p className="text-muted-foreground text-[11px] mt-0.5">
+                <p className="text-slate-600 text-[11px] mt-0.5">
                   {selectedConcept.ncertReference}
                 </p>
               </div>
 
               {/* Misconceptions diagnosed */}
               {selectedConcept.misconceptions.length > 0 && (
-                <div className="bg-rose-500/10 border border-rose-500/20 rounded-lg p-2.5 text-xs text-rose-700 dark:text-rose-300">
-                  <span className="font-semibold block mb-1 flex items-center gap-1">
-                    <AlertTriangle className="w-3.5 h-3.5 text-rose-500" />
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 text-xs text-rose-900">
+                  <span className="font-bold block mb-1 flex items-center gap-1 text-rose-700">
+                    <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
                     Diagnosed Bottleneck:
                   </span>
-                  <ul className="list-disc list-inside space-y-0.5 text-[11px]">
+                  <ul className="list-disc list-inside space-y-0.5 text-[11px] text-rose-800">
                     {selectedConcept.misconceptions.map((m, idx) => (
                       <li key={idx}>{m}</li>
                     ))}
@@ -346,19 +336,19 @@ export const AdaptiveKnowledgeGraph: React.FC<AdaptiveKnowledgeGraphProps> = ({
           </AnimatePresence>
 
           {/* Action CTAs */}
-          <div className="pt-4 border-t border-border/60 space-y-2 mt-4">
+          <div className="pt-4 border-t border-slate-200 space-y-2 mt-4">
             <button
               onClick={() => onLaunchQuiz(selectedConcept.id)}
-              className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-all"
+              className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all"
             >
               <span>Test Concept (Adaptive Quiz)</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => onLaunchRemediation(selectedConcept.id)}
-              className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-semibold text-xs flex items-center justify-center gap-1.5 transition-all"
+              className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-300 text-amber-900 font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-2xs"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
               <span>Generate Automated Remediation</span>
             </button>
           </div>

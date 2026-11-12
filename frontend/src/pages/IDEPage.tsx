@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Bot, User, Code2, Lightbulb, AlertCircle, ChevronDown, Save, Check, Play, X, Terminal as TerminalIcon, Zap, Wand2, BookOpen } from 'lucide-react'
+import { Send, Bot, User, Code2, Lightbulb, AlertCircle, ChevronDown, Save, Check, Play, X, Terminal as TerminalIcon, Zap, Wand2, BookOpen, GraduationCap } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Editor, { OnMount } from '@monaco-editor/react'
@@ -743,6 +743,16 @@ const IDEPage = () => {
           </div>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          {/* PS 1 Adaptive Learning Platform Button */}
+          <button
+            onClick={() => navigate('/adaptive-learning')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white shadow-xs transition-all"
+            title="Switch to PS 1: Adaptive Learning & Remediation Platform"
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>Adaptive Learning (PS 1)</span>
+          </button>
+
           {/* Knowledge Hub Button */}
           <button
             onClick={() => navigate('/knowledge')}
