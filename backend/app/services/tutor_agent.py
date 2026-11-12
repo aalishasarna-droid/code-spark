@@ -1,4 +1,5 @@
 import httpx
+import re
 from app.core.config import settings
 from app.models.schemas import EditorState, TutorResponse
 
@@ -117,7 +118,43 @@ HELPFUL FEATURES:
 Remember: You're a supportive guide, not a strict examiner. Build confidence while teaching!
 """
         
-        return f"{system_prompt}\n\n{context}\n\nProvide a supportive, Socratic response:"
+        instruction = (
+            "INSTRUCTION FOR SOCRATIC TUTOR:\n"
+            "- Speak directly to the student as their supportive coding tutor.\n"
+            "- Do NOT include internal planning bullets, role summaries, or draft labels.\n"
+            "- Output ONLY your direct, warm response to the student:"
+        )
+        return f"{system_prompt}\n\n{context}\n\n{instruction}"
+    
+    def _clean_tutor_response(self, text: str) -> str:
+        """Strip any thinking tags or planning preamble from reasoning models"""
+        if not text:
+            return ""
+        # Remove <think>...</think> if present
+        text = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+        # If model outputs draft markers like "*Draft 1*:" or "Draft:", take text after the last draft
+        draft_match = re.search(r'(?:\*+Draft\s*\d*\*+:?|Draft\s*\d*:?)\s*(.*)', text, flags=re.DOTALL | re.IGNORECASE)
+        if draft_match:
+            text = draft_match.group(1).strip()
+        # If starts with bulleted internal prompt echo like "* Role:" or "* Personality:"
+        lines = text.split('\n')
+        cleaned_lines = []
+        skipping_preamble = True
+        for line in lines:
+            stripped = line.strip()
+            if skipping_preamble and (
+                stripped.startswith('*   Role:') or stripped.startswith('* Role:') or
+                stripped.startswith('*   Personality:') or stripped.startswith('* Personality:') or
+                stripped.startswith('*   Rules:') or stripped.startswith('* Rules:') or
+                stripped.startswith('*   Scenario:') or stripped.startswith('* Scenario:') or
+                stripped.startswith('*   Code:') or stripped.startswith('* Code:') or
+                stripped.startswith('*   Student Question:') or stripped.startswith('* Student Question:')
+            ):
+                continue
+            skipping_preamble = False
+            cleaned_lines.append(line)
+        cleaned = '\n'.join(cleaned_lines).strip()
+        return cleaned if cleaned else text.strip()
     
     async def get_guidance(self, editor_state: EditorState, user_question: str, model_type: str = "ollama", rag_context: str = "") -> TutorResponse:
         """
@@ -139,26 +176,45 @@ Remember: You're a supportive guide, not a strict examiner. Build confidence whi
                 return await self._get_ollama_response(prompt)
                     
         except Exception as e:
-            print(f"Error calling LLM: {e}")
+            err_type = type(e).__name__
+            err_msg = str(e) if str(e) else "Timeout or connection error"
+            print(f"❌ Error calling LLM [{err_type}]: {err_msg}")
             return self._get_fallback_response(user_question)
     
     async def _get_ollama_response(self, prompt: str) -> TutorResponse:
         """
-        Get response from Ollama (local LLM)
+        Get response from Ollama (local LLM) with support for thinking tokens and reasonable token budget
         """
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
                 self.ollama_url,
                 json={
                     "model": self.ollama_model,
                     "prompt": prompt,
-                    "stream": False
+                    "stream": False,
+                    "options": {
+                        "num_predict": 350,
+                        "temperature": 0.7,
+                    }
                 }
             )
             
             if response.status_code == 200:
                 result = response.json()
-                ai_response = result.get("response", "")
+                ai_response = (result.get("response") or "").strip()
+                
+                # If the reasoning model placed the content in thinking or response is empty
+                if not ai_response:
+                    thinking = (result.get("thinking") or "").strip()
+                    if thinking:
+                        ai_response = thinking
+                
+                # Clean planning/reasoning preamble if present
+                ai_response = self._clean_tutor_response(ai_response)
+                
+                # If still empty, use a graceful fallback
+                if not ai_response:
+                    ai_response = "I examined your code! What specific question or line would you like to explore together?"
                 
                 return TutorResponse(
                     response=ai_response,
@@ -166,7 +222,7 @@ Remember: You're a supportive guide, not a strict examiner. Build confidence whi
                     related_concepts=[]
                 )
             else:
-                raise Exception(f"Ollama returned status {response.status_code}")
+                raise Exception(f"Ollama returned status {response.status_code}: {response.text}")
     
     async def _get_gemini_response(self, prompt: str) -> TutorResponse:
         """

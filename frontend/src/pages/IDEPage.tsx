@@ -708,7 +708,7 @@ const IDEPage = () => {
       const aiMessage: ChatMessage = {
         id: messages.length + 2,
         role: 'assistant',
-        content: data.response,
+        content: data.response || "I examined your code! What specific part would you like help understanding?",
         timestamp: new Date(),
       }
 

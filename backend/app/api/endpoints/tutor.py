@@ -29,9 +29,11 @@ async def ask_tutor(request: AskTutorRequest):
     Args:
         request: Contains editor_state, user_question, model_type, session_id, and project_id
     """
+    print(f"📥 [tutor/ask] Query: '{request.user_question}' (model: {request.model_type})")
     try:
         from app.models.schemas import EditorState
         editor_state = EditorState(**request.editor_state)
+        print(f"📄 [tutor/ask] File: {editor_state.file_path} ({len(editor_state.full_code)} chars)")
         
         # Get RAG context if project_id provided
         rag_context = ""
@@ -91,8 +93,10 @@ async def ask_tutor(request: AskTutorRequest):
                 code_context=editor_state.full_code
             )
         
+        print(f"✅ [tutor/ask] Completed response ({len(response.response)} chars)")
         return response
     except Exception as e:
+        print(f"❌ [tutor/ask] Failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/health")
