@@ -110,6 +110,7 @@ RESPONSE PATTERN:
 ❓ Question: "Good question! Let's think about [concept]. What happens when...?"
 
 HELPFUL FEATURES:
+- When asked to explain code or output: clearly explain what the code does step-by-step and what their output numbers/matrix mean in plain English, then ask a follow-up question.
 - Suggest reviewing specific concepts when stuck
 - Offer hints before full explanations
 - Connect to real-world examples
@@ -144,11 +145,14 @@ Remember: You're a supportive guide, not a strict examiner. Build confidence whi
             stripped = line.strip()
             if skipping_preamble and (
                 stripped.startswith('*   Role:') or stripped.startswith('* Role:') or
+                stripped.startswith('*   User role:') or stripped.startswith('* User role:') or
                 stripped.startswith('*   Personality:') or stripped.startswith('* Personality:') or
                 stripped.startswith('*   Rules:') or stripped.startswith('* Rules:') or
                 stripped.startswith('*   Scenario:') or stripped.startswith('* Scenario:') or
+                stripped.startswith('*   Context:') or stripped.startswith('* Context:') or
                 stripped.startswith('*   Code:') or stripped.startswith('* Code:') or
-                stripped.startswith('*   Student Question:') or stripped.startswith('* Student Question:')
+                stripped.startswith('*   Student Question:') or stripped.startswith('* Student Question:') or
+                stripped.startswith('* Student question:')
             ):
                 continue
             skipping_preamble = False
@@ -185,7 +189,7 @@ Remember: You're a supportive guide, not a strict examiner. Build confidence whi
         """
         Get response from Ollama (local LLM) with support for thinking tokens and reasonable token budget
         """
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.post(
                 self.ollama_url,
                 json={
@@ -193,7 +197,7 @@ Remember: You're a supportive guide, not a strict examiner. Build confidence whi
                     "prompt": prompt,
                     "stream": False,
                     "options": {
-                        "num_predict": 350,
+                        "num_predict": 2048,
                         "temperature": 0.7,
                     }
                 }
@@ -203,18 +207,17 @@ Remember: You're a supportive guide, not a strict examiner. Build confidence whi
                 result = response.json()
                 ai_response = (result.get("response") or "").strip()
                 
-                # If the reasoning model placed the content in thinking or response is empty
-                if not ai_response:
-                    thinking = (result.get("thinking") or "").strip()
-                    if thinking:
-                        ai_response = thinking
+                # Clean any planning or preamble formatting if present
+                if ai_response:
+                    ai_response = self._clean_tutor_response(ai_response)
                 
-                # Clean planning/reasoning preamble if present
-                ai_response = self._clean_tutor_response(ai_response)
-                
-                # If still empty, use a graceful fallback
+                # If the response is still empty (e.g. model spent all tokens in thinking),
+                # provide a helpful, natural response instead of leaking internal scratchpad
                 if not ai_response:
-                    ai_response = "I examined your code! What specific question or line would you like to explore together?"
+                    ai_response = (
+                        "I reviewed your code and execution output! "
+                        "What specific part of the logic or output metrics would you like to dive into first?"
+                    )
                 
                 return TutorResponse(
                     response=ai_response,
