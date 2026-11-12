@@ -1,0 +1,46 @@
+# Fast Dockerfile using pre-built PyTorch image
+# Use this if the regular Dockerfile times out
+
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install dependencies (PyTorch already included in base image)
+RUN pip install --no-cache-dir --timeout=1000 \
+    fastapi==0.109.0 \
+    uvicorn[standard]==0.27.0 \
+    python-multipart==0.0.6 \
+    pydantic==2.5.3 \
+    pydantic-settings==2.1.0 \
+    python-dotenv==1.0.0 \
+    httpx==0.26.0 \
+    google-generativeai==0.3.2 \
+    sentence-transformers==2.2.2
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p database
+
+# Expose port
+EXPOSE 8000
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV API_HOST=0.0.0.0
+ENV API_PORT=8000
+
+# Run the application
+CMD ["python", "main.py"]

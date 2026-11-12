@@ -1,0 +1,29 @@
+version: '3.8'
+
+# Fast build using pre-built PyTorch image
+# Use this if regular docker-compose.yml times out
+
+services:
+  mcp-ide-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.fast
+    container_name: mcp-ide-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./database:/app/database
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - mcp-ide-network
+
+networks:
+  mcp-ide-network:
+    driver: bridge

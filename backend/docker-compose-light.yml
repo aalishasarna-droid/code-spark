@@ -1,0 +1,33 @@
+version: '3.8'
+
+# Lightweight CPU-only build
+# Recommended for development - smaller and faster
+
+services:
+  mcp-ide-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.light
+    container_name: mcp-ide-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - ./database:/app/database
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - PYTHONUNBUFFERED=1
+      # Override Ollama URL to reach host machine from Docker
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    networks:
+      - mcp-ide-network
+
+networks:
+  mcp-ide-network:
+    driver: bridge

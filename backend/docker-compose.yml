@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  mcp-ide-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mcp-ide-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount code for hot reload during development
+      - .:/app
+      # Persist database
+      - ./database:/app/database
+    env_file:
+      - .env
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    networks:
+      - mcp-ide-network
+
+networks:
+  mcp-ide-network:
+    driver: bridge

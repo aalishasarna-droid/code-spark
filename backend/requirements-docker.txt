@@ -1,0 +1,16 @@
+# Lightweight requirements for Docker (without heavy ML dependencies)
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+pydantic==2.5.3
+pydantic-settings==2.1.0
+python-dotenv==1.0.0
+httpx==0.26.0
+
+# Note: google-generativeai removed - not needed for Ollama-only mode
+# Install it separately if you want Gemini cloud support:
+#   pip install google-generativeai==0.3.2
+
+# Note: sentence-transformers removed for faster Docker builds
+# It's not currently used in the codebase
+# If you need RAG/embeddings later, add it back

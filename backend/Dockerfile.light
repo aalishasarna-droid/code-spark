@@ -1,0 +1,64 @@
+# Lightweight CPU-only Dockerfile with multi-language support
+# Supports: Python, JavaScript/Node.js, C++
+# Final image: ~2GB
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Install system dependencies including compilers and runtimes
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    curl \
+    # For C++ compilation
+    build-essential \
+    # Install Node.js for JavaScript execution
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Verify installations
+RUN python --version && \
+    node --version && \
+    npm --version && \
+    g++ --version
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Install PyTorch CPU-only (much smaller than CUDA version)
+RUN pip install --no-cache-dir --timeout=1000 \
+    torch --index-url https://download.pytorch.org/whl/cpu
+
+# Install other dependencies
+RUN pip install --no-cache-dir --timeout=1000 \
+    fastapi==0.109.0 \
+    uvicorn[standard]==0.27.0 \
+    python-multipart==0.0.6 \
+    pydantic==2.5.3 \
+    pydantic-settings==2.1.0 \
+    python-dotenv==1.0.0 \
+    httpx==0.26.0 \
+    websockets>=12.0 \
+    PyMuPDF>=1.24.0
+    # google-generativeai is optional - install separately for Gemini support
+
+# Install sentence-transformers (will use CPU-only PyTorch)
+RUN pip install --no-cache-dir --timeout=1000 \
+    sentence-transformers>=3.0.1
+
+# Copy application code
+COPY . .
+
+# Create necessary directories
+RUN mkdir -p database
+
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1
+ENV API_HOST=0.0.0.0
+ENV API_PORT=8000
+
+CMD ["python", "main.py"]
