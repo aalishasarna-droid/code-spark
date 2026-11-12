@@ -295,22 +295,34 @@ async def realtime_audio_endpoint(client_ws: WebSocket):
         async with websockets.connect(url, additional_headers=headers) as openai_ws:
             print(f"✅ Connected to OpenAI Realtime API")
             
-            # Initial session config with tools
+            # Initial session config with tools (OpenAI Realtime GA schema for gpt-realtime-2.1)
             context_payload = {
                 "type": "session.update",
                 "session": {
                     "type": "realtime",
                     "instructions": "You are E D I T H, an advanced AI coding assistant. You have full context of the user's IDE, code, errors, and project files. You can explain code, answer questions, edit code files, AND search their uploaded notes. Be concise, professional, and helpful. When the user asks you to search their notes, explain a concept from their notes, or edit/fix code, use the available tools.",
-                    "voice": "ash", 
-                    "input_audio_format": "pcm16",
-                    "output_audio_format": "pcm16",
                     "tools": EDITH_TOOLS,
                     "tool_choice": "auto",
-                    "turn_detection": {
-                        "type": "server_vad",
-                        "threshold": 0.8,
-                        "prefix_padding_ms": 300,
-                        "silence_duration_ms": 1000
+                    "audio": {
+                        "input": {
+                            "format": {
+                                "type": "audio/pcm",
+                                "rate": 24000
+                            },
+                            "turn_detection": {
+                                "type": "server_vad",
+                                "threshold": 0.5,
+                                "prefix_padding_ms": 300,
+                                "silence_duration_ms": 500
+                            }
+                        },
+                        "output": {
+                            "format": {
+                                "type": "audio/pcm",
+                                "rate": 24000
+                            },
+                            "voice": "ash"
+                        }
                     }
                 }
             }
@@ -523,7 +535,7 @@ Your task: Help the user understand their code, fix errors, and edit files. When
                             # Log important messages
                             if msg_type == 'error':
                                 print(f"❌ OpenAI Error: {json.dumps(msg_data, indent=2)}")
-                            elif msg_type not in ['response.output_audio.delta', 'input_audio_buffer.speech_started', 'input_audio_buffer.committed']:
+                            elif msg_type not in ['response.output_audio.delta', 'response.audio.delta', 'input_audio_buffer.speech_started', 'input_audio_buffer.committed']:
                                 print(f"📨 OpenAI: {msg_type}")
                                 if msg_type == 'response.done':
                                     print(f"   [DEBUG] response.done details: {json.dumps(msg_data, indent=2)[:500]}...")

@@ -19,15 +19,27 @@ export function useJarvis(options?: UseJarvisOptions) {
   
   const activeSourcesRef = useRef<AudioBufferSourceNode[]>([]);
   const nextPlayTimeRef = useRef<number>(0);
+  const isSpeakingRef = useRef<boolean>(false);
 
-  // Initialize audio playback
+  // Initialize and unlock audio playback on user gesture
   const initAudio = useCallback(() => {
-    if (!audioContextRef.current) {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      audioContextRef.current = new AudioContext({ sampleRate: 24000 });
-    }
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
+    try {
+      if (!audioContextRef.current) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        audioContextRef.current = new AudioContextClass({ sampleRate: 24000 });
+      }
+      const ctx = audioContextRef.current;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(console.error);
+      }
+      // Play a short silent sample to immediately unlock browser audio autoplay
+      const silentBuffer = ctx.createBuffer(1, 1, 24000);
+      const silentSource = ctx.createBufferSource();
+      silentSource.buffer = silentBuffer;
+      silentSource.connect(ctx.destination);
+      silentSource.start(0);
+    } catch (err) {
+      console.warn('AudioContext init warning:', err);
     }
   }, []);
 
@@ -35,41 +47,59 @@ export function useJarvis(options?: UseJarvisOptions) {
     if (!audioContextRef.current) return;
     const ctx = audioContextRef.current;
     
+    // Ensure AudioContext is actively running (browsers suspend it after idle intervals)
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(console.error);
+    }
+
+    isSpeakingRef.current = true;
     setJarvisState('speaking');
 
-    const binaryString = window.atob(base64Audio);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
+    try {
+      const binaryString = window.atob(base64Audio);
+      const len = binaryString.length;
+      const numSamples = Math.floor(len / 2);
+      if (numSamples === 0) return;
 
-    const int16Array = new Int16Array(bytes.buffer);
-    const float32Array = new Float32Array(int16Array.length);
-    for (let i = 0; i < int16Array.length; i++) {
-      float32Array[i] = int16Array[i] / 32768.0; 
-    }
-
-    const audioBuffer = ctx.createBuffer(1, float32Array.length, 24000);
-    audioBuffer.getChannelData(0).set(float32Array);
-
-    const source = ctx.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(ctx.destination);
-
-    activeSourcesRef.current.push(source);
-    source.onended = () => {
-      activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
-      if (activeSourcesRef.current.length === 0) {
-        setJarvisState('listening');
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
       }
-    };
 
-    if (nextPlayTimeRef.current < ctx.currentTime) {
-      nextPlayTimeRef.current = ctx.currentTime + 0.1; 
+      // Safe DataView conversion for PCM 16-bit little-endian
+      const float32Array = new Float32Array(numSamples);
+      const dataView = new DataView(bytes.buffer, bytes.byteOffset, numSamples * 2);
+      for (let i = 0; i < numSamples; i++) {
+        float32Array[i] = dataView.getInt16(i * 2, true) / 32768.0; 
+      }
+
+      const audioBuffer = ctx.createBuffer(1, numSamples, 24000);
+      audioBuffer.getChannelData(0).set(float32Array);
+
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      source.connect(ctx.destination);
+
+      activeSourcesRef.current.push(source);
+      source.onended = () => {
+        activeSourcesRef.current = activeSourcesRef.current.filter(s => s !== source);
+        if (activeSourcesRef.current.length === 0) {
+          isSpeakingRef.current = false;
+          setJarvisState('listening');
+        }
+      };
+
+      // Seamless streaming audio scheduling:
+      // If nextPlayTime is behind current clock, catch up to now
+      const now = ctx.currentTime;
+      if (nextPlayTimeRef.current < now) {
+        nextPlayTimeRef.current = now; 
+      }
+      source.start(nextPlayTimeRef.current);
+      nextPlayTimeRef.current += audioBuffer.duration;
+    } catch (err) {
+      console.error('Error playing audio chunk:', err);
     }
-    const startTime = nextPlayTimeRef.current;
-    source.start(startTime);
-    nextPlayTimeRef.current = startTime + audioBuffer.duration;
   }, []);
 
   const stopJarvisAudio = useCallback(() => {
@@ -77,6 +107,7 @@ export function useJarvis(options?: UseJarvisOptions) {
       try { source.stop(); } catch (e) {}
     });
     activeSourcesRef.current = [];
+    isSpeakingRef.current = false;
     if (audioContextRef.current) {
       nextPlayTimeRef.current = audioContextRef.current.currentTime;
     }
@@ -122,6 +153,8 @@ export function useJarvis(options?: UseJarvisOptions) {
 
       processorRef.current.onaudioprocess = (e) => {
         if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) return;
+        // Prevent speaker echo feedback: do not stream mic while EDITH is speaking
+        if (isSpeakingRef.current) return;
         
         const inputData = e.inputBuffer.getChannelData(0);
         const pcm16Buffer = floatTo16BitPCM(inputData);
@@ -167,8 +200,10 @@ export function useJarvis(options?: UseJarvisOptions) {
       try {
         const data = JSON.parse(event.data);
         
-        if (data.type === "response.output_audio.delta") {
-          playAudioChunk(data.delta);
+        if (data.type === "response.output_audio.delta" || data.type === "response.audio.delta") {
+          if (data.delta) {
+            playAudioChunk(data.delta);
+          }
         } 
         else if (data.type === "code_edit" && data.edit) {
           // E D I T H triggered a code edit via voice command
@@ -177,11 +212,11 @@ export function useJarvis(options?: UseJarvisOptions) {
             options.onCodeEdit(data.edit as CodeEdit);
           }
         }
-        else if (data.type === "response.output_audio_transcript.delta") {
+        else if (data.type === "response.output_audio_transcript.delta" || data.type === "response.audio_transcript.delta") {
           currentMessage += data.delta;
           setTranscript(currentMessage);
         } 
-        else if (data.type === "response.output_audio_transcript.done") {
+        else if (data.type === "response.output_audio_transcript.done" || data.type === "response.audio_transcript.done") {
           currentMessage = ""; 
           // Keep the last transcript visible for a bit
           setTimeout(() => {
@@ -191,7 +226,11 @@ export function useJarvis(options?: UseJarvisOptions) {
           }, 3000);
         } 
         else if (data.type === "input_audio_buffer.speech_started") {
-          stopJarvisAudio();
+          // If EDITH was speaking, user interrupted
+          if (isSpeakingRef.current) {
+            console.log('User speech detected, stopping EDITH playback');
+            stopJarvisAudio();
+          }
           currentMessage = "";
           setTranscript("");
         }
